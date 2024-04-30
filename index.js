@@ -40,8 +40,31 @@ async function run() {
     });
 
     app.get("/employees", async (req, res) => {
-      const result = await employeesCollection.find().toArray();
-      res.send(result);
+      const itemPerPage = parseInt(req.query.item);
+      const page = parseInt(req.query.page);
+      const skip = (page - 1) * itemPerPage;
+
+      const totalItems = await employeesCollection.countDocuments();
+      const totalPages = Math.ceil(totalItems / itemPerPage);
+
+      const employees = await employeesCollection
+        .find()
+        .skip(skip)
+        .limit(itemPerPage)
+        .toArray();
+
+      const startIndex = (page - 1) * itemPerPage + 1;
+
+      const indexedEmployees = employees.map((employee, index) => ({
+        ...employee,
+        id: startIndex + index,
+      }));
+
+      res.json({
+        currentPage: page,
+        totalPages: totalPages,
+        data: indexedEmployees,
+      });
     });
 
     app.get("/employees/:id", async (req, res) => {
